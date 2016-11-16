@@ -14,7 +14,7 @@ class CPU {
 		let _overflow_flag = null;
 		let _sign_flag = null;
 
-		this.memory = new Uint8Array(0);
+		this.memory = new Uint8Array(0x10000);
 
 		this.registers = {
 			pc: null,
@@ -100,19 +100,20 @@ class CPU {
 			indirect_indexed: 11,
 			indirect: 12
 		}
-
-		this.reset();
 	}
 }
 
 CPU.prototype.push = require('./push');
 CPU.prototype.pull = require('./pull');
-
 CPU.prototype.instructions = require('./instructions');
-
+CPU.prototype.getResetVector = require('./vectors/rst');
+CPU.prototype.getBreakVector = require('./vectors/brk');
+CPU.prototype.getIRQVector = require('./vectors/irq');
+CPU.prototype.getNMIVector = require('./vectors/nmi');
 CPU.prototype.reset = require('./reset');
 CPU.prototype.getStatusFlags = require('./get-status-flags');
-CPU.prototype.memoryDump = require('./memory-dump');
-CPU.prototype.statusDump = require('./status-dump');
+CPU.prototype.memoryDump = require('./debug/memory-dump');
+CPU.prototype.statusDump = require('./debug/status-dump');
+CPU.prototype.stackDump = require('./debug/stack-dump');
 
 module.exports = CPU;

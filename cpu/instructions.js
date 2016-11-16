@@ -12,25 +12,23 @@ Number.prototype.toByte = function(){
 }
 
 let instructions = {
-	"adc": function(registers, memory, status, addressing_mode){
+	adc: function(registers, memory, status, addressing_mode){
 
-		let src = memory[++registers.pc];
-		let val = src + registers.ac + (status.carry_flag ? 1 : 0);
+		let src = memory[++this.registers.pc];
+		let val = src + this.registers.ac + (this.status.carry_flag ? 1 : 0);
 
-		if(status.decimal_mode_flag){
-			if((registers.ac & 0xf) + (src & 0xf) + (status.carry_flag ? 1 : 0) > 9){
+		if(this.status.decimal_mode_flag){
+			if((this.registers.ac & 0xf) + (src & 0xf) + (this.status.carry_flag ? 1 : 0) > 9){
 				val += 6;
 			}
-			status.sign_flag = (val > 1) ? true : false;
-			status.overflow_flag = (!((registers.ac ^ src) & 0x80) && ((registers.ac ^ val) && 0x80)) ? true : false;
-			if(val > 0x99){
-				val += 96;
-			}
-			status.carry_flag = (val > 0x99) ? true : false;
+			this.status.sign_flag = (val > 1) ? true : false;
+			this.status.overflow_flag = (!((this.registers.ac ^ src) & 0x80) && ((this.registers.ac ^ val) && 0x80)) ? true : false;
+			if(val > 0x99){ val += 96;}
+			this.status.carry_flag = (val > 0x99) ? true : false;
 		}else{
-			status.sign_flag = (val > 1) ? true : false;
-			status.overflow_flag = (!((registers.ac ^ src) & 0x80) && ((registers.ac ^ val) && 0x80)) ? true : false;
-			status.carry_flag = (val > 0xff) ? true : false;
+			this.status.sign_flag = (val > 1) ? true : false;
+			this.status.overflow_flag = (!((this.registers.ac ^ src) & 0x80) && ((this.registers.ac ^ val) && 0x80)) ? true : false;
+			this.status.carry_flag = (val > 0xff) ? true : false;
 		}
 		registers.ac = val.toByte();
 	},

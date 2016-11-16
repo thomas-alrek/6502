@@ -1,14 +1,37 @@
+const fs = require("fs");
 const CPU = require('./cpu/6502');
 
-let cpu = new CPU();
+//Load boot ROM
+fs.readFile("boot.rom", function (err, data) {
+    if (err) throw err;
+    boot(data);
+});
 
-cpu.memory[cpu.registers.pc + 1] = 0xff;
+function boot(rom){
+	let cpu = new CPU();
 
+	//Load ROM into memory starting from 0xFF00
+	for(let i = 0xFF00; i < (0xFF00 + rom.length); i++){
+		cpu.memory[i] = rom[i - 0xFF00];
+	}
+
+	//Initialize CPU memory and reset vector
+	cpu.reset();
+
+	//Debug
+	cpu.memoryDump();
+	cpu.statusDump();
+	cpu.stackDump();
+}
+
+/* Testing
+cpu.memory[cpu.registers.pc + 1] = 0xaa;
 cpu.registers.ac = 0xaa;
-
 cpu.statusDump();
 
-cpu.instructions.adc(cpu.registers, cpu.memory, cpu.status, 0x0);
+cpu.instructions.adc.bind(cpu);
 
 console.log("");
 cpu.statusDump();
+
+cpu.memoryDump();*/
