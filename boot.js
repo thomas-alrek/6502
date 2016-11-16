@@ -1,8 +1,8 @@
 const fs = require("fs");
-const CPU = require('./cpu/6502');
+const CPU = require('./6502/cpu');
 
 //Load boot ROM
-fs.readFile("boot.rom", function (err, data) {
+fs.readFile("firmware.rom", function (err, data) {
     if (err) throw err;
     boot(data);
 });
@@ -19,9 +19,9 @@ function boot(rom){
 	cpu.reset();
 
 	//Debug
-	cpu.memoryDump();
-	cpu.statusDump();
-	cpu.stackDump();
+	//cpu.memoryDump();
+	cpu.registerDump();
+	//cpu.stackDump();
 }
 
 /* Testing

@@ -1,6 +1,6 @@
 "use strict";
 
-let statusDump = function(){
+let registerDump = function(){
 	console.log("\nRegisters:");
     console.log("\tPC:\t\t0x" + this.registers.pc.toString(16));
     console.log("\tSTATUS REG:\t0x" + this.registers.status.toString(16) + " " +
@@ -20,4 +20,4 @@ let statusDump = function(){
     console.log("\tIND_Y REG:\t0x" + this.registers.y.toString(16));
 }
 
-module.exports = statusDump;
+module.exports = registerDump;

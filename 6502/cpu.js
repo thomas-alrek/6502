@@ -103,17 +103,47 @@ class CPU {
 	}
 }
 
-CPU.prototype.push = require('./push');
-CPU.prototype.pull = require('./pull');
+CPU.prototype.fetch = function(){
+	return this.memory[++this.registers.pc];
+}
+
+CPU.prototype.decode = function(opcode){
+	return "0x" + opcode.toString(16);
+}
+
+CPU.prototype.execute = function(instruction){
+	console.log(instruction);
+}
+
+CPU.prototype.loop = function(){
+	setTimeout(() =>{
+		this.execute(this.decode(this.fetch()));
+		this.loop();
+	}, 0);
+}
+
+/* stack functions */
+CPU.prototype.push = require('./stack/push');
+CPU.prototype.pop = require('./stack/pop');
+
+/* opcodes & instructions */
 CPU.prototype.instructions = require('./instructions');
+
+/* vectors */
 CPU.prototype.getResetVector = require('./vectors/rst');
 CPU.prototype.getBreakVector = require('./vectors/brk');
 CPU.prototype.getIRQVector = require('./vectors/irq');
 CPU.prototype.getNMIVector = require('./vectors/nmi');
-CPU.prototype.reset = require('./reset');
-CPU.prototype.getStatusFlags = require('./get-status-flags');
+
+/* helper logic */
+CPU.prototype.getBytes16 = require('./logic/get-bytes-16');
+CPU.prototype.get16Bytes = require('./logic/get-16-bytes');
+CPU.prototype.reset = require('./logic/reset');
+CPU.prototype.getStatusFlags = require('./logic/get-status-flags');
+
+/* debugging */
 CPU.prototype.memoryDump = require('./debug/memory-dump');
-CPU.prototype.statusDump = require('./debug/status-dump');
+CPU.prototype.registerDump = require('./debug/register-dump');
 CPU.prototype.stackDump = require('./debug/stack-dump');
 
 module.exports = CPU;
