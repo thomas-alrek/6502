@@ -14,13 +14,10 @@ let reset = function(){
 	this.registers.ac = 0x0;
 	this.registers.x = 0x0;
 	this.registers.y = 0x0;
+
 	//this.registers.status = this.getStatusFlags();
 
-	/*for(let i = 0x0; i < 0x2000; i++){
-		this.memory[i] = 0xFF;
-	}*/
-
-	this.loop();
+	//this.loop();
 
 }
 

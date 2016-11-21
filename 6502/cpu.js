@@ -16,6 +16,10 @@ class CPU {
 
 		this.memory = new Uint8Array(0x10000);
 
+		for(let i = 0x0; i < 0x2000; i++){
+			this.memory[i] = 0xFF;
+		}
+
 		this.registers = {
 			pc: null,
 			sp: null,
@@ -104,11 +108,21 @@ class CPU {
 }
 
 CPU.prototype.fetch = function(){
-	return this.memory[++this.registers.pc];
+	if(++this.registers.pc >= this.memory.length){
+		//throw new RangeError("Program Counter out of range");
+		console.log("Program Counter out of range");
+		this.reset();
+	}
+	console.log("0x" + this.registers.pc.toString(16) + " / " + "0x" + (this.memory.length - 1).toString(16));
+	return this.memory[this.registers.pc];
 }
 
 CPU.prototype.decode = function(opcode){
-	return "0x" + opcode.toString(16);
+	let registers = this.registers;
+	return {
+		opcode,
+		registers
+	}
 }
 
 CPU.prototype.execute = function(instruction){
@@ -117,7 +131,9 @@ CPU.prototype.execute = function(instruction){
 
 CPU.prototype.loop = function(){
 	setTimeout(() =>{
-		this.execute(this.decode(this.fetch()));
+		var opcode = this.fetch();
+		var instruction = this.decode(opcode);
+		this.execute(instruction);
 		this.loop();
 	}, 0);
 }
@@ -136,6 +152,7 @@ CPU.prototype.getIRQVector = require('./vectors/irq');
 CPU.prototype.getNMIVector = require('./vectors/nmi');
 
 /* helper logic */
+CPU.prototype.load = require('./logic/load');
 CPU.prototype.getBytes16 = require('./logic/get-bytes-16');
 CPU.prototype.get16Bytes = require('./logic/get-16-bytes');
 CPU.prototype.reset = require('./logic/reset');
@@ -143,7 +160,7 @@ CPU.prototype.getStatusFlags = require('./logic/get-status-flags');
 
 /* debugging */
 CPU.prototype.memoryDump = require('./debug/memory-dump');
-CPU.prototype.registerDump = require('./debug/register-dump');
+CPU.prototype.registersDump = require('./debug/register-dump');
 CPU.prototype.stackDump = require('./debug/stack-dump');
 
 module.exports = CPU;
