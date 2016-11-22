@@ -11,63 +11,102 @@ Number.prototype.toByte = function(){
 	return val;
 }
 
-let instructions = {
-	adc: function(registers, memory, status, addressing_mode){
-
-		let src = memory[++this.registers.pc];
-		let val = src + this.registers.ac + (this.status.carry_flag ? 1 : 0);
-
-		if(this.status.decimal_mode_flag){
-			if((this.registers.ac & 0xf) + (src & 0xf) + (this.status.carry_flag ? 1 : 0) > 9){
-				val += 6;
-			}
-			this.status.sign_flag = (val > 1) ? true : false;
-			this.status.overflow_flag = (!((this.registers.ac ^ src) & 0x80) && ((this.registers.ac ^ val) && 0x80)) ? true : false;
-			if(val > 0x99){ val += 96;}
-			this.status.carry_flag = (val > 0x99) ? true : false;
-		}else{
-			this.status.sign_flag = (val > 1) ? true : false;
-			this.status.overflow_flag = (!((this.registers.ac ^ src) & 0x80) && ((this.registers.ac ^ val) && 0x80)) ? true : false;
-			this.status.carry_flag = (val > 0xff) ? true : false;
-		}
-		registers.ac = val.toByte();
-	},
-	"bne": function(registers, memory, addressing_mode){
-
-	},
-	"clc": function(registers, memory, addressing_mode){
-
-	},
-	"dey": function(registers, memory, addressing_mode){
-
-	},
-	"lda": function(registers, memory, addressing_mode){
-
-	},
-	"ldx": function(registers, memory, addressing_mode){
-
-	},
-	"ldy": function(registers, memory, addressing_mode){
-
-	},
-	"sbc": function(registers, memory, addressing_mode){
-
-	},
-	"sec": function(registers, memory, addressing_mode){
-
-	},
-	"sta": function(registers, memory, addressing_mode){
-
-	},
-	"stx": function(registers, memory, addressing_mode){
-
-	},
-	"tay": function(registers, memory, addressing_mode){
-
-	},
-	"tya": function(registers, memory, addressing_mode){
-
+Number.prototype.signed = function(){
+	let val = this;
+	if(val > 0x7F){
+		val  = val - 0x100;
 	}
+	return val;
+}
+
+let instructions = {
+
+	"cli": (cpu) => {
+		cpu.status.interrupt_flag = false
+	},
+
+	"nop": (cpu) => {},
+
+	"ora": (cpu, address) => {
+		let ac = cpu.registers.ac;
+		let value = cpu.memory[address];
+		cpu.registers.ac = cpu.update_nz(ac | value);
+	},
+
+	"bpl": (cpu, address) => {
+		if(!cpu.status.sign_flag){
+			cpu.registers.pc = address;
+		}
+	},
+
+	"jsr": (cpu, address) => {
+		cpu.push(cpu.registers.pc - 1);
+		cpu.registers.pc = address;
+	},
+
+	"eor": (cpu, address) => {
+		let ac = cpu.registers.ac;
+		let value = cpu.memory[address];
+		cpu.registers.ac = cpu.update_nz(ac ^ value);
+	},
+
+	"and": (cpu, address) => {
+		let ac = cpu.registers.ac;
+		let value = cpu.memory[address];
+		cpu.registers.ac = cpu.update_nz(ac & value);
+	},
+
+	"sta": (cpu, address) => {
+		let value = cpu.registers.ac;
+		cpu.memory[address] = value;
+	},
+
+	"adc": (cpu, address) => {
+		let ac = cpu.registers.ac;
+		let ac_signed = ac.signed();
+		let val = cpu.memory[address];
+		let val_signed = val.signed();
+		let carry_flag = (cpu.status.carry_flag ? 1 : 0);
+
+		let result1 = ac_signed + val_signed + carry_flag;
+		let result2 = ac + val + carry_flag;
+
+		cpu.registers.ac = cpu.update_nzc(result2);
+		cpu.status.overflow_flag = ((result1 > 0x7F) ? true : false) | ((result1 < -128) ? true : false);
+	},
+
+	"lsr": (cpu, address) => {
+		if(typeof address === 'undefined'){
+			cpu.status.carry_flag = cpu.registers.ac % 2;
+			cpu.registers.ac = cpu.update_nz(cpu.registers.ac >> 1);
+		}else{
+			cpu.status.carry_flag = cpu.memory[address] % 2;
+			cpu.memory[address] = cpu.update_nz(cpu.memory[address] >> 1);
+		}
+	},
+
+	"sty": (cpu, address) => {
+		cpu.memory[address] = cpu.registers.y;
+	},
+
+	"rts": (cpu, address) => {
+		let low = cpu.pop();
+		let high = cpu.pop();
+		cpu.registers.pc = cpu.get16Bytes(low, high) + 1;
+	},
+
+	"pha": (cpu, address) => {
+		cpu.push(cpu.registers.ac);
+	},
+
+	"jmp": (cpu, address) => {
+		cpu.registers.pc = address;
+	},
+
+	"pla": (cpu, address) => {
+		cpu.registers.ac = cpu.update_nz(cpu.pop());
+	}
+
 }
 
 module.exports = instructions;

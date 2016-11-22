@@ -14,6 +14,8 @@ class CPU {
 		let _overflow_flag = null;
 		let _sign_flag = null;
 
+		this.debug = false;
+
 		this.memory = new Uint8Array(0x10000);
 
 		for(let i = 0x0; i < 0x2000; i++){
@@ -107,35 +109,80 @@ class CPU {
 	}
 }
 
+CPU.prototype.update_nz = function(value){
+	value = value % 0x100;
+	this.status.zero_flag = (value == 0) ? true : false;
+	this.status.sign_flag = (value & 0x80 != 0) ? true: false;
+	return value;
+}
+
+CPU.prototype.update_nzc = function(value){
+	this.status.carry_flag = (value > 0xFF) ? true : false;
+	return this.update_nz(value);
+}
+
 CPU.prototype.fetch = function(){
 	if(++this.registers.pc >= this.memory.length){
-		//throw new RangeError("Program Counter out of range");
-		console.log("Program Counter out of range");
-		this.reset();
+		this.registers.pc = 0x0;
 	}
-	console.log("0x" + this.registers.pc.toString(16) + " / " + "0x" + (this.memory.length - 1).toString(16));
 	return this.memory[this.registers.pc];
 }
 
 CPU.prototype.decode = function(opcode){
-	let registers = this.registers;
-	return {
-		opcode,
-		registers
+	opcode = '0x' + opcode.toString(16);
+	let original = opcode;
+	opcode = this.opcodes[opcode];
+	if(opcode === '0x00' || opcode === '0xff'){
+		this.registersDump();
+		process.exit();
+	}
+	if(typeof opcode === 'undefined'){
+		console.log("Unknown opcode: " + original);
+		this.registersDump();
+		process.exit();
+		opcode = this.opcodes['0xea'];
+	}
+	return opcode;
+}
+
+CPU.prototype.execute = function(operand){
+	try{
+		if(typeof operand.mode !== 'undefined'){
+			let address = this.addressingModes[operand.mode](this);
+			let instruction = this.instructions[operand.instruction];
+			if(this.debug){
+				console.log("Instruction: " + operand.instruction + ", address: 0x" + address.toString(16));
+			}
+			instruction(this, address);
+		}else{
+			if(this.debug){
+				console.log("Instruction: " + operand.instruction + ", address: 0x" + this.registers.pc.toString(16));
+			}
+			this.instructions[operand.instruction](this);
+		}
+	}catch(e){
+		console.log(operand.instruction);
+		throw e;
 	}
 }
 
-CPU.prototype.execute = function(instruction){
-	console.log(instruction);
-}
-
 CPU.prototype.loop = function(){
-	setTimeout(() =>{
-		var opcode = this.fetch();
-		var instruction = this.decode(opcode);
-		this.execute(instruction);
-		this.loop();
-	}, 0);
+	if(this.debug){
+		setTimeout(() =>{
+			var opcode = this.fetch();
+			var instruction = this.decode(opcode);
+			console.log("\u001b[2J\u001b[0;0H");
+			this.execute(instruction);
+			this.registersDump();
+			this.loop();
+		}, 100);
+	}else{
+		while(1){
+			var opcode = this.fetch();
+			var instruction = this.decode(opcode);
+			this.execute(instruction);
+		}
+	}
 }
 
 /* stack functions */
@@ -144,6 +191,7 @@ CPU.prototype.pop = require('./stack/pop');
 
 /* opcodes & instructions */
 CPU.prototype.instructions = require('./instructions');
+CPU.prototype.opcodes = require('./opcodes');
 
 /* vectors */
 CPU.prototype.getResetVector = require('./vectors/rst');
@@ -157,6 +205,7 @@ CPU.prototype.getBytes16 = require('./logic/get-bytes-16');
 CPU.prototype.get16Bytes = require('./logic/get-16-bytes');
 CPU.prototype.reset = require('./logic/reset');
 CPU.prototype.getStatusFlags = require('./logic/get-status-flags');
+CPU.prototype.addressingModes = require('./logic/addressing-modes');
 
 /* debugging */
 CPU.prototype.memoryDump = require('./debug/memory-dump');

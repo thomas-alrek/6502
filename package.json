@@ -7,5 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Thomas Alrek <thomas@alrek.no>",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "yargs": "^6.4.0"
+  }
 }
