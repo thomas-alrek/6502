@@ -7,6 +7,7 @@ let cpu = new CPU();
 let firmware = 'firmware.rom';
 let address = undefined;
 let debug = false;
+let memdump = false;
 
 if(argv.firmware){
     firmware = argv.firmware;
@@ -18,6 +19,10 @@ if(argv.address){
 
 if(argv.debug){
     debug = argv.debug;
+}
+
+if(argv.memdump){
+    memdump = argv.memdump;
 }
 
 cpu.load(firmware, address);
@@ -32,12 +37,27 @@ cpu.debug = debug;
 
 function exitHandler(options, err) {
     if (options.cleanup){
-        console.log("Stack trace:\n");
-        console.log("\tAddr:\tOpcode:\tInstr:\tValue:\n");
-        for(let i = 0; i < cpu.trace.length; i++){
-            console.log("\t " + cpu.trace[i]);
+        if(cpu.debug){
+            console.log("Stack trace:\n");
+            console.log("\tAddr:\tOpcode:\tInstr:\tValue:\n");
+            for(let i = 0; i < cpu.trace.length; i++){
+                console.log("\t " + cpu.trace[i]);
+            }
+            cpu.memoryDump(cpu.registers.pc - 0x80, cpu.registers.pc + 0x80);
+            cpu.registersDump();
         }
-        cpu.registersDump();
+        if(memdump){
+            if(typeof memdump === 'string'){
+                let range = memdump.split('-');
+                if(range.length == 2){
+                    cpu.memoryDump(parseInt(range[0]), parseInt(range[1]));
+                }else{
+                    cpu.memoryDump();
+                }                
+            }else{
+                cpu.memoryDump();
+            }
+        }
     };
     if (err) console.log(err.stack);
     if (options.exit) process.exit();
