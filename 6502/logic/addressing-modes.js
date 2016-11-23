@@ -11,51 +11,52 @@ module.exports = {
     absolute: function(cpu){
         let low = cpu.registers.pc++;
         let high = cpu.registers.pc++;
+        console.log("0x" + cpu.get16Bytes(cpu.memory[high], cpu.memory[low]).toString(16));
         return cpu.get16Bytes(cpu.memory[high], cpu.memory[low]);
     },
 
     absoluteX: function(cpu){
-        return cpu.registers.x + cpu.registers.pc++;
+        return this.absolute(cpu) + cpu.registers.x;
     },
 
     absoluteY: function(cpu){
-        return cpu.registers.y + cpu.registers.pc++;
+        return this.absolute(cpu) + cpu.registers.y;
     },
 
     immediate: function(cpu){
-        return ++cpu.registers.pc
+        return cpu.registers.pc++;
     },
 
     indirect: function(cpu){
-        return cpu.get16Bytes(++cpu.registers.pc, ++cpu.registers.pc);
+        let low = cpu.registers.pc++;
+        let high = cpu.registers.pc++;
+        return cpu.get16Bytes(cpu.memory[high], cpu.memory[low]);
     },
 
     indirectX: function(cpu){
-        let address = cpu.memory[cpu.registers.pc + 1];
-        address = cpu.get16Bytes(address + cpu.registers.x + 1, address + cpu.registers.x + 2) % 0x100;
-        return cpu.memory[address];
+        let z = cpu.memory[1 + cpu.registers.pc++];
+        return (cpu.memory[z + cpu.registers.x] + cpu.memory[z + cpu.registers.x] << 8) % 0x100;
     },
 
     indirectY: function(cpu){
-        let address = cpu.memory[cpu.registers.pc + 1];
-        address = cpu.get16Bytes(address + cpu.registers.y + 1, address + cpu.registers.y + 2) % 0x100;
-        return cpu.memory[address];
+        let z = cpu.memory[1 + cpu.registers.pc++];
+        return (cpu.memory[z] + cpu.memory[z] << 8) + cpu.registers.y;
     },
 
     relative: function(cpu){
-        return cpu.registers.pc + (cpu.memory[cpu.registers.pc++] + 2).signed();
+        return cpu.registers.pc + (cpu.memory[cpu.registers.pc++] + 1).signed();
     },
 
     zeroPage: function(cpu){
-        return cpu.memory[cpu.registers.pc + 1];
+        return cpu.memory[1 + cpu.registers.pc++];
     },
 
     zeroPageX: function(cpu){
-        return cpu.registers.x;
+        return (cpu.memory[1 + cpu.registers.pc++] + cpu.registers.x) % 0x100;
     },
 
     zeroPageY: function(cpu){
-        return cpu.registers.y;
+        return (cpu.memory[1 + cpu.registers.pc++] + cpu.registers.y) % 0x100;
     }
 
 }
