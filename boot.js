@@ -32,6 +32,11 @@ cpu.debug = debug;
 
 function exitHandler(options, err) {
     if (options.cleanup){
+        console.log("Stack trace:\n");
+        console.log("\tAddr:\tOpcode:\tInstr:\tValue:\n");
+        for(let i = 0; i < cpu.trace.length; i++){
+            console.log("\t " + cpu.trace[i]);
+        }
         cpu.registersDump();
     };
     if (err) console.log(err.stack);

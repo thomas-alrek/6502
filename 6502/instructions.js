@@ -25,6 +25,10 @@ let instructions = {
 		cpu.status.interrupt_flag = false
 	},
 
+	"cld": (cpu) => {
+		cpu.status.decimal_flag = false;
+	},
+
 	"nop": (cpu) => {},
 
 	"ora": (cpu, address) => {
@@ -105,6 +109,47 @@ let instructions = {
 
 	"pla": (cpu, address) => {
 		cpu.registers.ac = cpu.update_nz(cpu.pop());
+	},
+
+	"ldy": (cpu, address) => {
+		cpu.registers.y = cpu.update_nz(cpu.memory[address]);
+	},
+
+	"lda": (cpu, address) => {
+		cpu.registers.ac = cpu.update_nz(cpu.memory[address]);
+	},
+
+	"cmp": (cpu, address) => {
+		let result = cpu.registers.accumulator - cpu.memory[address];
+		cpu.status.carry_flag = (result >= 0) ? true : false;
+		cpu.update_nz(result);
+	},
+
+	"beq": (cpu, address) => {
+		if(cpu.status.zero_flag){
+			cpu.registers.pc = address;
+		}
+	},
+
+	"iny": (cpu, address) => {
+		cpu.registers.y = cpu.update_nz(++cpu.registers.y);
+	},
+
+	"inc": (cpu, address) => {
+		cpu.memory[address] = cpu.update_nz(cpu.memory[address] + 1);
+	},
+
+	"bit": (cpu, address) => {
+		let val = cpu.memory[address];
+		cpu.status.sign_flag = ((val >> 7) % 2);
+		cpu.status.overflow_flag = ((val >> 6) % 2);
+		cpu.status.zero_flag = ((cpu.registers.ac & val) == 0) ? true : false;
+	},
+
+	"bmi": (cpu, address) => {
+        if(cpu.status.sign_flag){
+			cpu.registers.pc = address;
+		}
 	}
 
 }

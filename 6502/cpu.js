@@ -16,6 +16,8 @@ class CPU {
 
 		this.debug = false;
 
+		this.trace = [];
+
 		this.memory = new Uint8Array(0x10000);
 
 		for(let i = 0x0; i < 0x2000; i++){
@@ -122,44 +124,42 @@ CPU.prototype.update_nzc = function(value){
 }
 
 CPU.prototype.fetch = function(){
-	if(++this.registers.pc >= this.memory.length){
+	if(this.registers.pc + 1 >= this.memory.length){
 		this.registers.pc = 0x0;
 	}
-	return this.memory[this.registers.pc];
+	return this.memory[this.registers.pc++];
 }
 
 CPU.prototype.decode = function(opcode){
 	opcode = '0x' + opcode.toString(16);
 	let original = opcode;
 	opcode = this.opcodes[opcode];
-	if(opcode === '0x00' || opcode === '0xff'){
-		this.registersDump();
-		process.exit();
+	if(opcode === '0x0' || opcode === '0xff'){
+		//process.exit();
+                throw 'HALT';
 	}
 	if(typeof opcode === 'undefined'){
-		console.log("Unknown opcode: " + original);
-		this.registersDump();
-		process.exit();
+		console.log("Illegal opcode: \n\t" + original + "\n");
+		//process.exit();
+                throw 'HALT';
 		opcode = this.opcodes['0xea'];
 	}
 	return opcode;
 }
 
 CPU.prototype.execute = function(operand){
+	let instruction = this.instructions[operand.instruction];
+	let address = 0x0;
+	if(typeof operand.mode !== 'undefined'){
+		address = this.addressingModes[operand.mode](this);
+	}
+	this.trace.push("$" + operand.pc.toString(16) + "\t " +"(0x" + operand.opcode.toString(16) + ")\t " + operand.instruction.toUpperCase() + "\t 0x" + address.toString(16));
+	if(typeof this.instructions[operand.instruction] !== 'function'){
+		console.log('TRAP - Instruction "' + operand.instruction + '" not implemented\n');
+		throw 'TRAP - Instruction "' + operand.instruction + '" not implemented';
+	}
 	try{
-		if(typeof operand.mode !== 'undefined'){
-			let address = this.addressingModes[operand.mode](this);
-			let instruction = this.instructions[operand.instruction];
-			if(this.debug){
-				console.log("Instruction: " + operand.instruction + ", address: 0x" + address.toString(16));
-			}
-			instruction(this, address);
-		}else{
-			if(this.debug){
-				console.log("Instruction: " + operand.instruction + ", address: 0x" + this.registers.pc.toString(16));
-			}
-			this.instructions[operand.instruction](this);
-		}
+		instruction(this, address);
 	}catch(e){
 		console.log(operand.instruction);
 		throw e;
@@ -169,8 +169,11 @@ CPU.prototype.execute = function(operand){
 CPU.prototype.loop = function(){
 	if(this.debug){
 		setTimeout(() =>{
+			let pc = this.registers.pc;
 			var opcode = this.fetch();
 			var instruction = this.decode(opcode);
+			instruction.opcode = opcode;
+			instruction.pc = pc;
 			console.log("\u001b[2J\u001b[0;0H");
 			this.execute(instruction);
 			this.registersDump();
@@ -178,8 +181,11 @@ CPU.prototype.loop = function(){
 		}, 100);
 	}else{
 		while(1){
+			let pc = this.registers.pc;
 			var opcode = this.fetch();
 			var instruction = this.decode(opcode);
+			instruction.opcode = opcode;
+			instruction.pc = pc;
 			this.execute(instruction);
 		}
 	}

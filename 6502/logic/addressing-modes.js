@@ -1,28 +1,33 @@
+Number.prototype.signed = function(){
+	let val = this;
+	if(val > 0x7F){
+		val  = val - 0x100;
+	}
+	return val;
+}
+
 module.exports = {
     
     absolute: function(cpu){
-        let address = cpu.get16Bytes(cpu.registers.pc + 1, cpu.registers.pc);
-        return cpu.memory[address];
+        let low = cpu.registers.pc++;
+        let high = cpu.registers.pc++;
+        return cpu.get16Bytes(cpu.memory[high], cpu.memory[low]);
     },
 
     absoluteX: function(cpu){
-        let address = cpu.registers.pc + 1 + cpu.registers.x;
-        return cpu.memory[address];
+        return cpu.registers.x + cpu.registers.pc++;
     },
 
     absoluteY: function(cpu){
-        let address = cpu.registers.pc + 1 + cpu.registers.y;
-        return cpu.memory[address];
+        return cpu.registers.y + cpu.registers.pc++;
     },
 
     immediate: function(cpu){
-        let address = cpu.memory[cpu.registers.pc + 1];
-        return cpu.memory[address];
+        return ++cpu.registers.pc
     },
 
     indirect: function(cpu){
-        let address = cpu.get16Bytes(cpu.registers.pc + 1, cpu.registers.pc + 2);
-        return cpu.memory[address];
+        return cpu.get16Bytes(++cpu.registers.pc, ++cpu.registers.pc);
     },
 
     indirectX: function(cpu){
@@ -38,8 +43,7 @@ module.exports = {
     },
 
     relative: function(cpu){
-        let address = cpu.registers.pc + cpu.memory[cpu.registers.pc + 1];
-        return address;
+        return cpu.registers.pc + (cpu.memory[cpu.registers.pc++] + 2).signed();
     },
 
     zeroPage: function(cpu){
@@ -47,11 +51,11 @@ module.exports = {
     },
 
     zeroPageX: function(cpu){
-        return cpu.memory[cpu.registers.x];
+        return cpu.registers.x;
     },
 
     zeroPageY: function(cpu){
-        return cpu.memory[cpu.registers.y];
+        return cpu.registers.y;
     }
 
 }
