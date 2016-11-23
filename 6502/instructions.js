@@ -44,7 +44,9 @@ let instructions = {
 	},
 
 	"jsr": (cpu, address) => {
-		cpu.push(cpu.registers.pc - 1);
+		let word = cpu.getBytes16(cpu.registers.pc - 1);
+		cpu.push(word.high);
+		cpu.push(word.low);
 		cpu.registers.pc = address;
 	},
 
@@ -61,8 +63,7 @@ let instructions = {
 	},
 
 	"sta": (cpu, address) => {
-		let value = cpu.registers.ac;
-		cpu.memory[address] = value;
+		cpu.memory[address] = cpu.registers.ac;
 	},
 
 	"adc": (cpu, address) => {
@@ -93,10 +94,14 @@ let instructions = {
 		cpu.memory[address] = cpu.registers.y;
 	},
 
+	"stx": (cpu, address) => {
+		cpu.memory[address] = cpu.registers.x;
+	},
+
 	"rts": (cpu, address) => {
 		let low = cpu.pop();
 		let high = cpu.pop();
-		cpu.registers.pc = cpu.get16Bytes(low, high) + 1;
+		cpu.registers.pc = cpu.get16Bytes(low, low) + 1;
 	},
 
 	"pha": (cpu, address) => {
@@ -149,6 +154,47 @@ let instructions = {
 	"bmi": (cpu, address) => {
         if(cpu.status.sign_flag){
 			cpu.registers.pc = address;
+		}
+	},
+
+	"bne": (cpu, address) => {
+		if(!cpu.status.zero_flag){
+			cpu.registers.pc = address;
+		}
+	},
+
+	"ldx": (cpu, address) => {
+		cpu.registers.x  = cpu.update_nz(cpu.memory[address]);
+	},
+
+	"txs": (cpu) => {
+		cpu.registers.sp = cpu.registers.x;
+	},
+
+	"dey": (cpu) => {
+		cpu.registers.y = cpu.update_nz(cpu.registers.y - 1);
+	},
+
+	"brk": (cpu) => {
+		let word = cpu.getBytes16(cpu.registers.pc + 1);
+		cpu.push(word.high);
+		cpu.push(word.low);
+		cpu.registers.pc = (cpu.memory[0xFFFE] + cpu.memory[0xFFFF] << 8);
+	},
+
+	"rol": (cpu, address) => {
+		if(typeof address === 'undefined'){
+			let val = cpu.registers.ac << 1;
+			if(cpu.status.carry_flag){
+				val = val | 0x01;
+			}
+			cpu.registers.ac = cpu.update_nzc(val);
+		}else{
+			let val = cpu.memory[address] << 1;
+			if(cpu.status.carry_flag){
+				val = val | 0x01;
+			}
+			cpu.memory[address] = cpu.update_nzc(val);
 		}
 	}
 
