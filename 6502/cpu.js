@@ -20,9 +20,9 @@ class CPU {
 
 		this.memory = new Uint8Array(0x10000);
 
-		for(let i = 0x0; i < 0x2000; i++){
+		/*for(let i = 0x0; i < 0x2000; i++){
 			this.memory[i] = 0xFF;
-		}
+		}*/
 
 		this.registers = {
 			pc: null,
@@ -134,15 +134,12 @@ CPU.prototype.decode = function(opcode){
 	opcode = '0x' + opcode.toString(16);
 	let original = opcode;
 	opcode = this.opcodes[opcode];
-	if(opcode === '0x0' || opcode === '0xff'){
-		//process.exit();
-                throw 'HALT';
-	}
 	if(typeof opcode === 'undefined'){
-		console.log("Illegal opcode: \n\t" + original + "\n");
-		//process.exit();
-                throw 'HALT';
-		opcode = this.opcodes['0xea'];
+		/*if(this.debug){
+			console.log("\u001b[2J\u001b[0;0H");
+		}*/
+		console.log("TRAP - Illegal opcode: \n\t" + original + "\n");
+		throw 'HALT';
 	}
 	return opcode;
 }
@@ -155,6 +152,9 @@ CPU.prototype.execute = function(operand){
 	}
 	this.trace.push("$" + operand.pc.toString(16) + "\t " +"(0x" + operand.opcode.toString(16) + ")\t " + operand.instruction.toUpperCase() + "\t 0x" + address.toString(16));
 	if(typeof this.instructions[operand.instruction] !== 'function'){
+		if(this.debug){
+			console.log("\u001b[2J\u001b[0;0H");
+		}
 		console.log('TRAP - Instruction "' + operand.instruction + '" not implemented\n');
 		throw 'TRAP - Instruction "' + operand.instruction + '" not implemented';
 	}
@@ -174,11 +174,12 @@ CPU.prototype.loop = function(){
 			var instruction = this.decode(opcode);
 			instruction.opcode = opcode;
 			instruction.pc = pc;
-			console.log("\u001b[2J\u001b[0;0H");
+			//console.log("\u001b[2J\u001b[0;0H");
 			this.execute(instruction);
-			this.registersDump();
+			console.log(this.trace[this.trace.length - 1]);
+			//this.registersDump();
 			this.loop();
-		}, 100);
+		}, 0);
 	}else{
 		while(1){
 			let pc = this.registers.pc;
