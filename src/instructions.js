@@ -2,33 +2,29 @@
 
 let instructions = {
 
+	/* status register */
 	"cli": (cpu) => {
 		cpu.status.interrupt_flag = false
+	},
+
+	"sei": (cpu) => {
+		cpu.status.interrupt_flag = true
 	},
 
 	"cld": (cpu) => {
 		cpu.status.decimal_flag = false;
 	},
 
+	/* other */
+
 	"nop": (cpu) => {},
+
+	/* accumulator */
 
 	"ora": (cpu, address) => {
 		let ac = cpu.registers.ac;
 		let value = cpu.readByte(address);
 		cpu.registers.ac = cpu.update_nz(ac | value);
-	},
-
-	"bpl": (cpu, address) => {
-		if(!cpu.status.sign_flag){
-			cpu.registers.pc = address;
-		}
-	},
-
-	"jsr": (cpu, address) => {
-		let word = cpu.getBytes16(cpu.registers.pc - 1);
-		cpu.push(word.high);
-		cpu.push(word.low);
-		cpu.registers.pc = address;
 	},
 
 	"eor": (cpu, address) => {
@@ -61,6 +57,27 @@ let instructions = {
 		cpu.status.overflow_flag = ((result1 > 0x7F) ? true : false) | ((result1 < -128) ? true : false);
 	},
 
+	/* branching */
+
+	"bpl": (cpu, address) => {
+		if(!cpu.status.sign_flag){
+			cpu.registers.pc = address;
+		}
+	},
+
+	"jsr": (cpu, address) => {
+		let word = cpu.getBytes16(cpu.registers.pc - 1);
+		cpu.push(word.high);
+		cpu.push(word.low);
+		cpu.registers.pc = address;
+	},
+
+	"rts": (cpu, address) => {
+		let low = cpu.pop();
+		let high = cpu.pop();
+		cpu.registers.pc = cpu.get16Bytes(low, high) + 1;
+	},
+
 	"lsr": (cpu, address) => {
 		if(typeof address === 'undefined'){
 			cpu.status.carry_flag = cpu.registers.ac % 2;
@@ -71,65 +88,14 @@ let instructions = {
 		}
 	},
 
-	"sty": (cpu, address) => {
-		cpu.writeByte(cpu.registers.y);
-	},
-
-	"stx": (cpu, address) => {
-		cpu.writeByte(cpu.registers.x);
-	},
-
-	"rts": (cpu, address) => {
-		let low = cpu.pop();
-		let high = cpu.pop();
-		cpu.registers.pc = cpu.get16Bytes(low, high) + 1;
-	},
-
-	"pha": (cpu, address) => {
-		cpu.push(cpu.registers.ac);
-	},
-
 	"jmp": (cpu, address) => {
 		cpu.registers.pc = address;
-	},
-
-	"pla": (cpu, address) => {
-		cpu.registers.ac = cpu.update_nz(cpu.pop());
-	},
-
-	"ldy": (cpu, address) => {
-		cpu.registers.y = cpu.update_nz(address);
-	},
-
-	"lda": (cpu, address) => {
-		cpu.registers.ac = cpu.update_nz(address);
-	},
-
-	"cmp": (cpu, address) => {
-		let result = cpu.registers.accumulator - address;
-		cpu.status.carry_flag = (result >= 0) ? true : false;
-		cpu.update_nz(result);
 	},
 
 	"beq": (cpu, address) => {
 		if(cpu.status.zero_flag){
 			cpu.registers.pc = address;
 		}
-	},
-
-	"iny": (cpu, address) => {
-		cpu.registers.y = cpu.update_nz(cpu.registers.y + 1);
-	},
-
-	"inc": (cpu, address) => {
-		cpu.writeByte(address, cpu.update_nz(cpu.readByte(address) + 1));
-	},
-
-	"bit": (cpu, address) => {
-		let val = cpu.readByte(address);
-		cpu.status.sign_flag = ((val >> 7) % 2);
-		cpu.status.overflow_flag = ((val >> 6) % 2);
-		cpu.status.zero_flag = ((cpu.registers.ac & val) == 0) ? true : false;
 	},
 
 	"bmi": (cpu, address) => {
@@ -144,6 +110,49 @@ let instructions = {
 		}
 	},
 
+	"brk": (cpu) => {
+		let word = cpu.getBytes16(cpu.registers.pc + 1);
+		cpu.push(word.high);
+		cpu.push(word.low);
+		cpu.registers.pc = (cpu.readByte(0xFFFE) + cpu.readByte(0xFFFF) << 8);
+	},
+
+	/* y register */
+
+	"sty": (cpu, address) => {
+		cpu.writeByte(cpu.registers.y);
+	},
+
+	"ldy": (cpu, address) => {
+		cpu.registers.y = cpu.update_nz(address);
+	},
+
+	"iny": (cpu) => {
+		cpu.registers.y = cpu.update_nz(cpu.registers.y + 1);
+	},
+
+	"dey": (cpu) => {
+		cpu.registers.y = cpu.update_nz(cpu.registers.y - 1);
+	},
+
+	/* x register */
+
+	"stx": (cpu, address) => {
+		cpu.writeByte(cpu.registers.x);
+	},
+
+	"inx": (cpu) => {
+		cpu.registers.x = cpu.update_nz(cpu.registers.x + 1);
+	},
+
+	"txa": (cpu) => {
+		cpu.registers.ac = cpu.update_nz(cpu.registers.x);
+	},
+
+	"tsx": (cpu) => {
+		cpu.registers.x = cpu.update_nz(cpu.registers.sp);
+	},
+
 	"ldx": (cpu, address) => {
 		cpu.registers.x  = cpu.update_nz(cpu.readByte(address));
 	},
@@ -152,15 +161,34 @@ let instructions = {
 		cpu.registers.sp = cpu.registers.x;
 	},
 
-	"dey": (cpu) => {
-		cpu.registers.y = cpu.update_nz(cpu.registers.y - 1);
+	/* stack operations */
+	"pha": (cpu, address) => {
+		cpu.push(cpu.registers.ac);
 	},
 
-	"brk": (cpu) => {
-		let word = cpu.getBytes16(cpu.registers.pc + 1);
-		cpu.push(word.high);
-		cpu.push(word.low);
-		cpu.registers.pc = (cpu.readByte(0xFFFE) + cpu.readByte(0xFFFF) << 8);
+	"pla": (cpu, address) => {
+		cpu.registers.ac = cpu.update_nz(cpu.pop());
+	},
+
+	"lda": (cpu, address) => {
+		cpu.registers.ac = cpu.update_nz(address);
+	},
+
+	"cmp": (cpu, address) => {
+		let result = cpu.registers.ac - address;
+		cpu.status.carry_flag = (result >= 0) ? true : false;
+		cpu.update_nz(result);
+	},
+
+	"inc": (cpu, address) => {
+		cpu.writeByte(address, cpu.update_nz(cpu.readByte(address) + 1));
+	},
+
+	"bit": (cpu, address) => {
+		let val = cpu.readByte(address);
+		cpu.status.sign_flag = ((val >> 7) % 2);
+		cpu.status.overflow_flag = ((val >> 6) % 2);
+		cpu.status.zero_flag = ((cpu.registers.ac & val) == 0) ? true : false;
 	},
 
 	"rol": (cpu, address) => {

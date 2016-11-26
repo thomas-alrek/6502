@@ -23,6 +23,8 @@ class CPU {
 		this.hardware = [];
 		this.memory = new Uint8Array(0x10000);
 
+		this.count = 0;
+
 		this.registers = {
 			pc: null,
 			sp: null,
@@ -110,28 +112,30 @@ class CPU {
 	}
 }
 
-CPU.prototype.loop = function(){
+CPU.prototype.tick = function(){
+	let pc = this.registers.pc;
+	var opcode = this.fetch();
+	var instruction = this.decode(opcode);
+	instruction.opcode = opcode;
+	instruction.pc = pc;
+	this.execute(instruction);
+}
+
+CPU.prototype.loop = function(callback){
 	if(this.debug){
 		setTimeout(() =>{
-			let pc = this.registers.pc;
-			var opcode = this.fetch();
-			var instruction = this.decode(opcode);
-			instruction.opcode = opcode;
-			instruction.pc = pc;
-			//console.log("\u001b[2J\u001b[0;0H");
-			this.execute(instruction);
-			//console.log(this.trace[this.trace.length - 1]);
-			//this.registersDump();
-			this.loop();
+			this.tick();
+			if(typeof callback === 'function'){
+				callback();
+			}
+			this.loop(callback);
 		}, 0);
 	}else{
 		while(1){
-			let pc = this.registers.pc;
-			var opcode = this.fetch();
-			var instruction = this.decode(opcode);
-			instruction.opcode = opcode;
-			instruction.pc = pc;
-			this.execute(instruction);
+			if(typeof callback === 'function'){
+				callback();
+			}
+			this.tick();
 		}
 	}
 }

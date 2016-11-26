@@ -30,7 +30,7 @@ let memoryDump = function(_start, _end){
 				str += ' ';
 				continue;
 			}
-			output += (Array(0xFF.toString(16).length + 1).join("0") + this.memory[i + j].toString(16)).substring(this.memory[i + j].toString(16).length) + ' ';
+			output += (Array(0xFF.toString(16).length + 1).join("0") + this.readByte(i + j).toString(16)).substring(this.readByte(i + j).toString(16).length) + ' ';
 			if(this.memory[i+j] <= 31){
 				str += '.';
 			}else{
