@@ -1,0 +1,11 @@
+{
+  "name": "rom",
+  "version": "1.0.0",
+  "description": "Apple I ROM",
+  "main": "rom.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Steve Wozniak",
+  "license": "ISC"
+}
