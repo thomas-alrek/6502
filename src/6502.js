@@ -1,5 +1,9 @@
 "use strict";
 
+Number.prototype.toByte = require('./prototypes/number').toByte;
+Number.prototype.signed = require('./prototypes/number').signed;
+Number.prototype.between = require('./prototypes/number').between;
+
 class CPU {
 	constructor(options){
 
@@ -15,14 +19,9 @@ class CPU {
 		let _sign_flag = null;
 
 		this.debug = false;
-
 		this.trace = [];
-
+		this.hardware = [];
 		this.memory = new Uint8Array(0x10000);
-
-		/*for(let i = 0x0; i < 0x2000; i++){
-			this.memory[i] = 0xFF;
-		}*/
 
 		this.registers = {
 			pc: null,
@@ -111,61 +110,6 @@ class CPU {
 	}
 }
 
-CPU.prototype.update_nz = function(value){
-	value = value % 0x100;
-	this.status.zero_flag = (value == 0) ? true : false;
-	this.status.sign_flag = (value & 0x80 != 0) ? true: false;
-	return value;
-}
-
-CPU.prototype.update_nzc = function(value){
-	this.status.carry_flag = (value > 0xFF) ? true : false;
-	return this.update_nz(value);
-}
-
-CPU.prototype.fetch = function(){
-	if(this.registers.pc + 1 >= this.memory.length){
-		this.registers.pc = 0x0;
-	}
-	return this.memory[this.registers.pc++];
-}
-
-CPU.prototype.decode = function(opcode){
-	opcode = '0x' + opcode.toString(16);
-	let original = opcode;
-	opcode = this.opcodes[opcode];
-	if(typeof opcode === 'undefined'){
-		/*if(this.debug){
-			console.log("\u001b[2J\u001b[0;0H");
-		}*/
-		console.log("TRAP - Illegal opcode: \n\t" + original + "\n");
-		throw 'HALT';
-	}
-	return opcode;
-}
-
-CPU.prototype.execute = function(operand){
-	let instruction = this.instructions[operand.instruction];
-	let address = 0x0;
-	if(typeof operand.mode !== 'undefined'){
-		address = this.addressingModes[operand.mode](this);
-	}
-	this.trace.push("$" + operand.pc.toString(16) + "\t " +"(0x" + operand.opcode.toString(16) + ")\t " + operand.instruction.toUpperCase() + "\t 0x" + address.toString(16));
-	if(typeof this.instructions[operand.instruction] !== 'function'){
-		if(this.debug){
-			console.log("\u001b[2J\u001b[0;0H");
-		}
-		console.log('TRAP - Instruction "' + operand.instruction + '" not implemented\n');
-		throw 'TRAP - Instruction "' + operand.instruction + '" not implemented';
-	}
-	try{
-		instruction(this, address);
-	}catch(e){
-		console.log(operand.instruction);
-		throw e;
-	}
-}
-
 CPU.prototype.loop = function(){
 	if(this.debug){
 		setTimeout(() =>{
@@ -176,7 +120,7 @@ CPU.prototype.loop = function(){
 			instruction.pc = pc;
 			//console.log("\u001b[2J\u001b[0;0H");
 			this.execute(instruction);
-			console.log(this.trace[this.trace.length - 1]);
+			//console.log(this.trace[this.trace.length - 1]);
 			//this.registersDump();
 			this.loop();
 		}, 0);
@@ -192,13 +136,29 @@ CPU.prototype.loop = function(){
 	}
 }
 
+/* memory mapped virtual hardware */
+CPU.prototype.attach = require('./hardware/attach');
+
+/* memory functions */
+CPU.prototype.addressingModes = require('./memory/addressing-modes');
+CPU.prototype.load = require('./memory/load');
+CPU.prototype.getBytes16 = require('./memory/get-bytes-16');
+CPU.prototype.get16Bytes = require('./memory/get-16-bytes');
+CPU.prototype.readByte = require('./memory/read-byte');
+CPU.prototype.writeByte = require('./memory/write-byte');
+CPU.prototype.readWord = require('./memory/read-word');
+CPU.prototype.writeWord = require('./memory/write-word');
+
 /* stack functions */
 CPU.prototype.push = require('./stack/push');
 CPU.prototype.pop = require('./stack/pop');
 
-/* opcodes & instructions */
+/* fetch - decode - execute - loop */
 CPU.prototype.instructions = require('./instructions');
 CPU.prototype.opcodes = require('./opcodes');
+CPU.prototype.fetch = require('./decode').fetch;
+CPU.prototype.decode = require('./decode').decode;
+CPU.prototype.execute = require('./decode').execute;
 
 /* vectors */
 CPU.prototype.getResetVector = require('./vectors/rst');
@@ -206,13 +166,13 @@ CPU.prototype.getBreakVector = require('./vectors/brk');
 CPU.prototype.getIRQVector = require('./vectors/irq');
 CPU.prototype.getNMIVector = require('./vectors/nmi');
 
-/* helper logic */
-CPU.prototype.load = require('./logic/load');
-CPU.prototype.getBytes16 = require('./logic/get-bytes-16');
-CPU.prototype.get16Bytes = require('./logic/get-16-bytes');
-CPU.prototype.reset = require('./logic/reset');
+/* registers */
+CPU.prototype.update_nz = require('./logic/update-nz');
+CPU.prototype.update_nzc = require('./logic/update-nzc');
 CPU.prototype.getStatusFlags = require('./logic/get-status-flags');
-CPU.prototype.addressingModes = require('./logic/addressing-modes');
+
+/* helper logic */
+CPU.prototype.reset = require('./logic/reset');
 
 /* debugging */
 CPU.prototype.memoryDump = require('./debug/memory-dump');

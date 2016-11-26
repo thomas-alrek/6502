@@ -1,7 +1,7 @@
 "use strict";
 
 let registerDump = function(){
-	console.log("\nRegisters:");
+	console.log("\nRegisters:\n");
     console.log("\tPC:\t\t0x" + this.registers.pc.toString(16));
     console.log("\tSTATUS REG:\t0x" + this.registers.status.toString(16) + " " +
 		(this.status.sign_flag ? 1 : 0) +

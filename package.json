@@ -2,12 +2,9 @@
   "name": "6502",
   "version": "1.0.0",
   "description": "6502 cpu emulator",
-  "main": "cpu.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "main": "src/6502.js",
   "author": "Thomas Alrek <thomas@alrek.no>",
-  "license": "ISC",
+  "license": "GPL-2.0",
   "dependencies": {
     "yargs": "^6.4.0"
   }

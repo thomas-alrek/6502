@@ -1,24 +1,5 @@
 "use strict";
 
-Number.prototype.toByte = function(){
-	let val = this;
-	if(val > 0xff){
-		val = 0xff;
-	}
-	if(val < 0x0){
-		val = (0xff - (+val)) % 0xff;
-	}
-	return val;
-}
-
-Number.prototype.signed = function(){
-	let val = this;
-	if(val > 0x7F){
-		val  = val - 0x100;
-	}
-	return val;
-}
-
 let instructions = {
 
 	"cli": (cpu) => {
@@ -33,7 +14,7 @@ let instructions = {
 
 	"ora": (cpu, address) => {
 		let ac = cpu.registers.ac;
-		let value = cpu.memory[address];
+		let value = cpu.readByte(address);
 		cpu.registers.ac = cpu.update_nz(ac | value);
 	},
 
@@ -52,24 +33,24 @@ let instructions = {
 
 	"eor": (cpu, address) => {
 		let ac = cpu.registers.ac;
-		let value = cpu.memory[address];
+		let value = cpu.readByte(address);
 		cpu.registers.ac = cpu.update_nz(ac ^ value);
 	},
 
 	"and": (cpu, address) => {
 		let ac = cpu.registers.ac;
-		let value = cpu.memory[address];
+		let value = cpu.readByte(address);
 		cpu.registers.ac = cpu.update_nz(ac & value);
 	},
 
 	"sta": (cpu, address) => {
-		cpu.memory[address] = cpu.registers.ac;
+		cpu.writeByte(address, cpu.registers.ac);
 	},
 
 	"adc": (cpu, address) => {
 		let ac = cpu.registers.ac;
 		let ac_signed = ac.signed();
-		let val = cpu.memory[address];
+		let val = cpu.readByte(address);
 		let val_signed = val.signed();
 		let carry_flag = (cpu.status.carry_flag ? 1 : 0);
 
@@ -85,23 +66,23 @@ let instructions = {
 			cpu.status.carry_flag = cpu.registers.ac % 2;
 			cpu.registers.ac = cpu.update_nz(cpu.registers.ac >> 1);
 		}else{
-			cpu.status.carry_flag = cpu.memory[address] % 2;
-			cpu.memory[address] = cpu.update_nz(cpu.memory[address] >> 1);
+			cpu.status.carry_flag = cpu.readByte(address) % 2;
+			cpu.writeByte(address, cpu.update_nz(cpu.readByte(address) >> 1));
 		}
 	},
 
 	"sty": (cpu, address) => {
-		cpu.memory[address] = cpu.registers.y;
+		cpu.writeByte(cpu.registers.y);
 	},
 
 	"stx": (cpu, address) => {
-		cpu.memory[address] = cpu.registers.x;
+		cpu.writeByte(cpu.registers.x);
 	},
 
 	"rts": (cpu, address) => {
 		let low = cpu.pop();
 		let high = cpu.pop();
-		cpu.registers.pc = cpu.get16Bytes(low, low) + 1;
+		cpu.registers.pc = cpu.get16Bytes(low, high) + 1;
 	},
 
 	"pha": (cpu, address) => {
@@ -117,15 +98,15 @@ let instructions = {
 	},
 
 	"ldy": (cpu, address) => {
-		cpu.registers.y = cpu.update_nz(cpu.memory[address]);
+		cpu.registers.y = cpu.update_nz(address);
 	},
 
 	"lda": (cpu, address) => {
-		cpu.registers.ac = cpu.update_nz(cpu.memory[address]);
+		cpu.registers.ac = cpu.update_nz(address);
 	},
 
 	"cmp": (cpu, address) => {
-		let result = cpu.registers.accumulator - cpu.memory[address];
+		let result = cpu.registers.accumulator - address;
 		cpu.status.carry_flag = (result >= 0) ? true : false;
 		cpu.update_nz(result);
 	},
@@ -137,15 +118,15 @@ let instructions = {
 	},
 
 	"iny": (cpu, address) => {
-		cpu.registers.y = cpu.update_nz(++cpu.registers.y);
+		cpu.registers.y = cpu.update_nz(cpu.registers.y + 1);
 	},
 
 	"inc": (cpu, address) => {
-		cpu.memory[address] = cpu.update_nz(cpu.memory[address] + 1);
+		cpu.writeByte(address, cpu.update_nz(cpu.readByte(address) + 1));
 	},
 
 	"bit": (cpu, address) => {
-		let val = cpu.memory[address];
+		let val = cpu.readByte(address);
 		cpu.status.sign_flag = ((val >> 7) % 2);
 		cpu.status.overflow_flag = ((val >> 6) % 2);
 		cpu.status.zero_flag = ((cpu.registers.ac & val) == 0) ? true : false;
@@ -164,7 +145,7 @@ let instructions = {
 	},
 
 	"ldx": (cpu, address) => {
-		cpu.registers.x  = cpu.update_nz(cpu.memory[address]);
+		cpu.registers.x  = cpu.update_nz(cpu.readByte(address));
 	},
 
 	"txs": (cpu) => {
@@ -179,7 +160,7 @@ let instructions = {
 		let word = cpu.getBytes16(cpu.registers.pc + 1);
 		cpu.push(word.high);
 		cpu.push(word.low);
-		cpu.registers.pc = (cpu.memory[0xFFFE] + cpu.memory[0xFFFF] << 8);
+		cpu.registers.pc = (cpu.readByte(0xFFFE) + cpu.readByte(0xFFFF) << 8);
 	},
 
 	"rol": (cpu, address) => {
@@ -190,11 +171,11 @@ let instructions = {
 			}
 			cpu.registers.ac = cpu.update_nzc(val);
 		}else{
-			let val = cpu.memory[address] << 1;
+			let val = cpu.readByte(address) << 1;
 			if(cpu.status.carry_flag){
 				val = val | 0x01;
 			}
-			cpu.memory[address] = cpu.update_nzc(val);
+			cpu.writeByte(cpu.update_nzc(val));
 		}
 	}
 
