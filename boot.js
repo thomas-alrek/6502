@@ -7,6 +7,11 @@ let address = undefined;
 let debug = true;
 let memdump = false;
 
+let Apple1ROM = require('./hardware/rom/apple1-rom');
+let C64ROM = require('./hardware/rom/test-rom');
+let rom = new C64ROM();
+//let rom = new Apple1ROM();
+
 if(argv.firmware){
     firmware = argv.firmware;
 }
@@ -54,7 +59,8 @@ process.on('SIGINT', exitHandler.bind(null, {cleanup: true, exit:true}));
 process.on('uncaughtException', exitHandler.bind(null, {cleanup: true, exit:true}));
 
 let cpu = new CPU();
-cpu.load(firmware, address);
+/*cpu.load(firmware, address);*/
+cpu.attach(rom);
 cpu.reset();
 cpu.debug = debug;
 cpu.loop();
